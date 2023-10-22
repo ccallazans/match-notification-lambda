@@ -7,11 +7,14 @@ import (
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/ccallazans/match-notification-lambda/internal/models"
 )
 
-func GetUsersByTopic(topicName string) ([]models.User, error) {
+type User struct {
+	ID    int64
+	Email string
+}
+
+func GetUsersByTopic(topicName string) ([]User, error) {
 	apiUrl := os.Getenv("MATCH_NOTIFICATION_API")
 
 	response, err := http.Get(fmt.Sprintf("%s/users?topic=%s", apiUrl, topicName))
@@ -27,7 +30,7 @@ func GetUsersByTopic(topicName string) ([]models.User, error) {
 		return nil, err
 	}
 
-	users := []models.User{}
+	users := []User{}
 	if err := json.Unmarshal(responseBody, &users); err != nil {
 		log.Printf("Error parsing JSON: %s", err)
 		return nil, err

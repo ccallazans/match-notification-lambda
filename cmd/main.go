@@ -11,9 +11,10 @@ import (
 )
 
 type Event struct {
-	Topic string `json:"topic"`
-	Type  string `json:"type"`
-	Body  string `json:"body"`
+	ID      string `json:"id"`
+	Topic   string `json:"topic"`
+	Type    string `json:"type"`
+	Message string `json:"message"`
 }
 
 func main() {
@@ -21,8 +22,9 @@ func main() {
 }
 
 func Handler(ctx context.Context, sqsEvent events.SQSEvent) error {
-	log.Println("LAMBDA INICIALIZADA")
-	log.Println(sqsEvent)
+	log.Println("LAMBDA START")
+	log.Printf("RECEIVED REQUEST: %+v\n", sqsEvent)
+
 	sqsMessage := sqsEvent.Records[0]
 
 	event := &Event{}
@@ -38,7 +40,8 @@ func Handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 		return err
 	}
 
-	log.Println(users)
+	log.Printf("SENDING NOTIFICATION TO USERS: %+v\n", users)
+	log.Println("END")
 
 	return nil
 }
