@@ -11,7 +11,7 @@ import (
 )
 
 type Event struct {
-	ID      string `json:"id"`
+	ID      uint   `json:"id"`
 	Topic   string `json:"topic"`
 	Type    string `json:"type"`
 	Message string `json:"message"`
