@@ -17,7 +17,7 @@ type User struct {
 func GetUsersByTopic(topicName string) ([]User, error) {
 	apiUrl := os.Getenv("MATCH_NOTIFICATION_API")
 
-	response, err := http.Get(fmt.Sprintf("%s/users?topic=%s", apiUrl, topicName))
+	response, err := http.Get(fmt.Sprintf("%s/api/v1/subscriptions?topic=%s", apiUrl, topicName))
 	if err != nil {
 		log.Println(err)
 		return nil, err
