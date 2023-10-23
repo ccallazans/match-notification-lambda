@@ -3,10 +3,14 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 	"github.com/ccallazans/match-notification-lambda/internal/service"
 )
 
@@ -40,7 +44,40 @@ func Handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 		return err
 	}
 
+	subject := fmt.Sprintf("%s: %s", event.Type, event.Topic)
 	log.Printf("SENDING NOTIFICATION TO USERS: %+v\n", users)
+
+	input := &sesv2.SendEmailInput{
+		Destination: &types.Destination{
+			ToAddresses: []string{"ccallazans@gmail.com"},
+		},
+		Content: &types.EmailContent{
+			Simple: &types.Message{
+				Subject: &types.Content{
+					Data: &subject,
+				},
+				Body: &types.Body{
+					Text: &types.Content{
+						Data: &event.Message,
+					},
+				},
+			},
+		},
+	}
+
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		log.Printf("Error creating aws config: %s", cfg)
+	}
+
+	sesClient := sesv2.NewFromConfig(cfg)
+	result, err := sesClient.SendEmail(context.TODO(), input)
+	if err != nil {
+		log.Printf("Error when sending email %s", err)
+		return err
+	}
+
+	log.Printf("Success!!: %s", result)
 	log.Println("END")
 
 	return nil
