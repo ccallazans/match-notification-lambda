@@ -18,15 +18,18 @@ type User struct {
 	} `json:"topics"`
 }
 
-func GetUsersByTopic(topics []string) ([]string, error) {
+func GetSubscriptionEmailsByTopic(topics []string) ([]string, error) {
 	apiUrl := os.Getenv("MATCH_NOTIFICATION_API")
 
 	var queryString string
 	for _, topic := range topics {
-		queryString += fmt.Sprintf("?topic=%s", topic)
+		queryString += fmt.Sprintf("&topic=%s", topic)
 	}
 
-	response, err := http.Get(fmt.Sprintf("%s/api/v1/subscriptions%s", apiUrl, queryString))
+	url := fmt.Sprintf("%s/api/v1/subscriptions?%s", apiUrl, queryString)
+	
+	log.Printf("Sending Get Request topics: %s to: %s", topics, url)
+	response, err := http.Get(url)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -39,8 +42,19 @@ func GetUsersByTopic(topics []string) ([]string, error) {
 		return nil, err
 	}
 
-	users := []User{}
-	if err := json.Unmarshal(responseBody, &users); err != nil {
+	log.Printf("RECEIVED RESPONSE: %s\n", responseBody)
+	emails, err := parseResponse(responseBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return emails, nil
+}
+
+func parseResponse(response []byte) ([]string, error) {
+
+	var users []User
+	if err := json.Unmarshal(response, &users); err != nil {
 		log.Printf("Error parsing JSON: %s", err)
 		return nil, err
 	}

@@ -31,14 +31,10 @@ func Handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 	log.Println("LAMBDA START")
 	log.Printf("RECEIVED REQUEST: %+v\n", sqsEvent)
 
-	cfg := configs.NewAWSConfig()
-	sesClient := sesv2.NewFromConfig(cfg)
 	sqsMessage := sqsEvent.Records[0]
-
-	var event Event
-	err := json.Unmarshal([]byte(sqsMessage.Body), &event)
+	event, err := parseSQSMessage(sqsMessage.Body)
 	if err != nil {
-		log.Printf("Error when parsing sqs message %s", err.Error())
+		log.Printf("Error when parsing sqs message body %s", err.Error())
 		return err
 	}
 
@@ -47,24 +43,46 @@ func Handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 		topics = append(topics, topic.Name)
 	}
 
-	emails, err := service.GetUsersByTopic(topics)
+	emails, err := service.GetSubscriptionEmailsByTopic(topics)
 	if err != nil {
 		log.Printf("Error when geting user by topic %s", err.Error())
 		return err
 	}
 
 	log.Printf("SENDING NOTIFICATION TO USERS: %+v\n", emails)
-
-	subject := fmt.Sprintf("%s: %s", event.Type, event.Type)
-	email := service.CreateEmail(emails, subject, event.Message)
-
-	_, err = sesClient.SendEmail(context.TODO(), email)
+	err = sendEmail(event, emails)
 	if err != nil {
-		log.Printf("Error when sending email %s", err)
 		return err
 	}
 
 	log.Println("END")
+	return nil
+}
+
+func parseSQSMessage(message string) (Event, error) {
+
+	var event Event
+	err := json.Unmarshal([]byte(message), &event)
+	if err != nil {
+		log.Printf("Error when parsing sqs message %s", err.Error())
+		return Event{}, err
+	}
+
+	return event, nil
+}
+
+func sendEmail(event Event, emails []string) error {
+	cfg := configs.NewAWSConfig()
+	sesClient := sesv2.NewFromConfig(cfg)
+
+	subject := fmt.Sprintf("MATCH-NOTIFICATION-API: %s", event.Type)
+	email := service.CreateEmail(emails, subject, event.Message)
+
+	_, err := sesClient.SendEmail(context.TODO(), email)
+	if err != nil {
+		log.Printf("Error when sending email %s", err)
+		return err
+	}
 
 	return nil
 }
